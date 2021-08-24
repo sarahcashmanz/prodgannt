@@ -106,7 +106,7 @@ def formatforGG(df):
     cols = df.columns.tolist()
     dl.insert(0,cols)
     title = "Gannt"
-    tempdata = json.dumps({'title':title,'data':dl})
+    tempdata = json.dumps(dl)
     return tempdata
 
 #Code for running this module directly appopriate for integration into a Flask app
