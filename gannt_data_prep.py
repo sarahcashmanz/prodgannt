@@ -3,12 +3,6 @@ import argparse
 import os
 import json
 
-products_to_GG_mapping = {
-    "Product":"Task ID",
-    "Product Start Date":"Start",
-    "Product Planned Delivery Date":"End",
-}
-
 GGcols = ['Task ID',
           'Task Name',
           'Start',
@@ -17,7 +11,6 @@ GGcols = ['Task ID',
           'Duration',
           'Percent Complete',
           'Dependencies']
-
 
 def convertFYQtodate(fyq):
    """
@@ -49,26 +42,34 @@ def split_id_from_name(id_w_name):
     df = id_w_name.str.split(':',n=1,expand=True)
     return df
 
+def select_product_or_subproduct_fields(row):
+    """
+    Adds a Task field to a row and assigns it product or subproduct name
+    :param row:
+    :return:
+    """
+    if pd.isnull(row["Subproduct"]):
+        row['Task'] = row['Product']
+        row['End'] = row['Product Planned Delivery Date']
+        row["Resource"] = "Product"
+    else:
+        row['Task'] = row['Subproduct']
+        row['End'] = row['Subproduct Delivery FY-Quarter']
+        row["Resource"] = "Subproduct"
+    row['Start'] = row['Product Start Date']
+    return(row)
 
-# def merge_names(row):
-#     print(row)
-#     if row["Subproduct"]=='nan':
-#         row['Task']=row['Product']
-#     else:
-#         row['Task'] = row["Subproduct"]
-#     return(row)
-#
-# def merge_product_subproduct(df):
-#     df['Resource'] = ''
-#     df = df.apply(merge_names)
-#     return(df)
+def merge_product_subproduct(df):
+    df['Resource'] = ''
+    df = df.apply(select_product_or_subproduct_fields, axis=1)
+    return(df)
 
 def splitnamefields(df):
-    fields = ['Product', 'Subproduct']
+    fields = ['Task']
     for f in fields:
         if f in df.columns:
             df_id_name = split_id_from_name(df[f])
-            df_id_name.columns = ['Task_ID','Task_Name']
+            df_id_name.columns = ['Task ID','Task Name']
             df = df.drop(columns=f)
             df = pd.concat([df,df_id_name],axis=1)
     return df
@@ -81,7 +82,7 @@ def loadandcleanRAPIDexport(rapidsubproductsexport):
     exportfile = os.path.realpath("gannt_data/"+ rapidsubproductsexport)
     df = pd.read_excel(exportfile,na_values=["-"])
     df = convertFYQfieldstodates(df)
-    #df = merge_product_subproduct(df)
+    df = merge_product_subproduct(df)
     df = splitnamefields(df)
     return df
 
@@ -91,20 +92,12 @@ def formatRAPIDproductsforGG(rapidsubproductsexport):
     :return:
     """
     df = loadandcleanRAPIDexport(rapidsubproductsexport)
-    df = df.rename(columns=products_to_GG_mapping)
-    # Convert the quarters for product end
-    df["Task Name"] = df["Task_ID"]
-    df["Resource"] = None
     df["Duration"] = None
     df["Percent Complete"] = None
     df["Dependencies"] = None
     df = df[GGcols]
     df = df.drop_duplicates()
     return df
-
-
-    #df.to_csv("ganntdata/producttimetable.csv",index=False)
-    #get as json
 
 def formatforGG(df):
     #convert timestamps to simple date
@@ -116,12 +109,13 @@ def formatforGG(df):
     tempdata = json.dumps({'title':title,'data':dl})
     return tempdata
 
-if __name__ == '__main__':
-
-    parser = argparse.ArgumentParser(argument_default=argparse.SUPPRESS)
-    parser.add_argument('-F', '--File', help = 'The file to extract from.',
-                        default = 'RAPIDsubproductexport.xlsx',
-                        required = True)
-    args = parser.parse_args()
-    formatRAPIDproductsforGG(args.File)
+#Code for running this module directly appopriate for integration into a Flask app
+# if __name__ == '__main__':
+#
+#     parser = argparse.ArgumentParser(argument_default=argparse.SUPPRESS)
+#     parser.add_argument('-F', '--File', help = 'The file to extract from.',
+#                         default = 'RAPIDsubproductexport.xlsx',
+#                         required = True)
+#     args = parser.parse_args()
+#     formatRAPIDproductsforGG(args.File)
 
