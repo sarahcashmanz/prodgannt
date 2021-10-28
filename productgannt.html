@@ -7,29 +7,129 @@
 <body>
   <div id="gantt"></div>
 
+  <p>Select local CSV File:</p>
+  <input id="csv" type="file">
+
+  <output id="out">
+    Contents of CSV will appear here for debugging.
+  </output>
+
+  <script>
+    var globalJSON = null; // contains the JSON data obtained from reading CSV file
+    const fileInput = document.getElementById("csv"),
+
+      readFile = function () {
+        const reader = new FileReader();
+        reader.onload = function () {
+          document.getElementById('out').innerHTML = reader.result;
+          console.log(reader.result)
+          console.log(csvJSON(reader.result))
+
+          globalJSON = csvJSON(reader.result)
+
+          google.charts.load('current', { 'packages': ['corechart', 'gantt'] });
+          google.charts.setOnLoadCallback(drawChart);
+
+        };
+
+        // start reading the file. When it is done, calls the onload event defined above.
+        reader.readAsBinaryString(fileInput.files[0]);
+      };
+
+    fileInput.addEventListener('change', readFile);
+
+  </script>
+
   <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 
   <script type="text/javascript">
-    google.charts.load('current', { 'packages': ['corechart', 'gantt'] });
-    google.charts.setOnLoadCallback(drawChart);
-
     function drawChart() {
-      const data = google.visualization.arrayToDataTable([
-        [{ label: "Task ID" }, { label: "Task Name" }, { label: "Start", type: 'date' }, { label: "End", type: 'date' }, { label: "Resource", type: 'number' }, { label: "Duration", type: 'number' }, { label: "Percent Complete" }, { labe: "Dependencies" }],
-        ["RES.1.1.1.1", "First subproduct", new Date("2022-01-01"), new Date("2022-12-31"), "Subproduct", null, null, null],
-        ["RES.1.1.2", "Second Product", new Date("2019-09-01"), new Date("2020-12-31"), "Product", null, null, null],
-        ["RES.1.1.3.1", "First subproduct", new Date("2019-08-01"), new Date("2020-12-31"), "Subproduct", null, null, null],
-        ["RES.1.1.3.2", "Second subproduct", new Date("2019-08-01"), new Date("2022-12-31"), "Subproduct", null, null, null],
-        ["RES.1.1.3.3", "Third subproduct", new Date("2019-08-01"), new Date("2022-12-31"), "Subproduct", null, null, null],
-        ["RES.1.1.3.4", "Fourth subproduct", new Date("2019-08-01"), new Date("2022-12-31"), "Subproduct", null, null, null],
-        ["RES.1.1.3.5", "Fifth subproduct", new Date("2019-08-01"), new Date("2021-09-30"), "Subproduct", null, null, null],
-        ["RES.1.1.3.6", "Sixth subproduct", new Date("2019-08-01"), new Date("2020-09-30"), "Subproduct", null, null, null]],
-        false);
+      const data = new google.visualization.DataTable();
+
+      data.addColumn('string', 'Task ID');
+      data.addColumn('string', 'Task Name');
+      data.addColumn('date', 'Start Date');
+      data.addColumn('date', 'End Date');
+      data.addColumn('number', 'Duration');
+      data.addColumn('number', 'Percent Complete');
+      data.addColumn('string', 'Dependencies');
+
+      globalJSON.length = 7; // TODO: remove empty rows from CSV file. for now trim the length of the array
+
+      for (var i = 0; i < globalJSON.length; i++) {
+        const formattedValues = Object.values(globalJSON[i]).map((value, i) => {
+          let x = value;
+
+          // first two values must be strings
+          if (i === 0 || i === 1) {
+            x = String(value)
+          }
+
+          // third and fourth values must be dates
+          if (i === 2 || i === 3) {
+            x = new Date(value)
+          }
+
+          // fifth values in their example are null https://developers.google.com/chart/interactive/docs/gallery/ganttchart
+          if (i === 4) {
+            x = null;
+          }
+
+          // sixth values in their examples are numbers
+          if (i === 5) {
+            x = Number(value)
+          }
+
+          // seventh values in their examples are null
+          if (i === 6) {
+            x = null
+          }
+          return x;
+        })
+
+        console.log(formattedValues)
+        data.addRow(formattedValues)
+
+      }
 
       const options = { 'title': 'Gantt' };
-
       chart = new google.visualization.Gantt(document.getElementById('gantt'))
+
+      // listen for errors
+      google.visualization.events.addListener(chart, 'error', function (err) {
+        console.log(err.id, err.message);
+      });
+
       chart.draw(data, options)
+    }
+
+
+
+    // source https://stackoverflow.com/questions/27979002/convert-csv-data-into-json-format-using-javascript
+    function csvJSON(csv) {
+      // csv is the CSV file with headers
+
+      var lines = csv.split("\n");
+
+      var result = [];
+
+      var headers = lines[0].split(",");
+
+      for (var i = 1; i < lines.length; i++) {
+
+        var obj = {};
+        var currentline = lines[i].split(",");
+
+        for (var j = 0; j < headers.length; j++) {
+          obj[headers[j]] = currentline[j];
+        }
+
+        result.push(obj);
+
+      }
+
+      return result; //JavaScript object
+      // return JSON.stringify(result); //JSON
     }
   </script>
 </body>
