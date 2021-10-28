@@ -1,3 +1,9 @@
+"""
+This module houses functions for converting exported product data in .xlsx format
+from EPA/ORD's RAPID system into a Google Chart GANNT format
+https://developers.google.com/chart/interactive/docs/gallery/ganttchart#data-format
+"""
+
 import pandas as pd
 import argparse
 import os
@@ -79,7 +85,7 @@ def loadandcleanRAPIDexport(rapidsubproductsexport):
     :param rapidsubproductsexport: an Excel file name with ".xlsx" extention
     :return:
     """
-    exportfile = os.path.realpath("gannt_data/"+ rapidsubproductsexport)
+    exportfile = os.path.realpath("../gannt_data/"+ rapidsubproductsexport)
     df = pd.read_excel(exportfile,na_values=["-"])
     df = convertFYQfieldstodates(df)
     df = merge_product_subproduct(df)
@@ -106,7 +112,7 @@ def formatforGG(df):
     cols = df.columns.tolist()
     dl.insert(0,cols)
     title = "Gannt"
-    tempdata = json.dumps(dl)
+    #tempdata = json.dumps(dl)
     return tempdata
 
 #Code for running this module directly appopriate for integration into a Flask app
