@@ -1,13 +1,16 @@
 """
-This module houses functions for converting exported product data in .xlsx format
+This module will convert exported product data in .xlsx format
 from EPA/ORD's RAPID system into a Google Chart GANNT format
 https://developers.google.com/chart/interactive/docs/gallery/ganttchart#data-format
+and write it to csv so it can be loaded into the productgannt.html
+This module can be run with a -F or --File parameter with the name of the file name in the RAPID
+export file name in the gannt_data folder
 """
 
 import pandas as pd
-import argparse
 import os
 import json
+import argparse
 
 GGcols = ['Task ID',
           'Task Name',
@@ -85,7 +88,7 @@ def loadandcleanRAPIDexport(rapidsubproductsexport):
     :param rapidsubproductsexport: an Excel file name with ".xlsx" extention
     :return:
     """
-    exportfile = os.path.realpath("../gannt_data/"+ rapidsubproductsexport)
+    exportfile = os.path.realpath("gannt_data/"+ rapidsubproductsexport)
     df = pd.read_excel(exportfile,na_values=["-"])
     df = convertFYQfieldstodates(df)
     df = merge_product_subproduct(df)
@@ -105,23 +108,22 @@ def formatRAPIDproductsforGG(rapidsubproductsexport):
     df = df.drop_duplicates()
     return df
 
-def formatforGG(df):
-    #convert timestamps to simple date
-
-    dl = df.values.tolist()
-    cols = df.columns.tolist()
-    dl.insert(0,cols)
-    title = "Gannt"
-    #tempdata = json.dumps(dl)
-    return tempdata
-
-#Code for running this module directly appopriate for integration into a Flask app
-# if __name__ == '__main__':
+# def formatforGG(df):
+#     #convert timestamps to simple date
 #
-#     parser = argparse.ArgumentParser(argument_default=argparse.SUPPRESS)
-#     parser.add_argument('-F', '--File', help = 'The file to extract from.',
-#                         default = 'RAPIDsubproductexport.xlsx',
-#                         required = True)
-#     args = parser.parse_args()
-#     formatRAPIDproductsforGG(args.File)
+#     dl = df.values.tolist()
+#     cols = df.columns.tolist()
+#     dl.insert(0,cols)
+#     tempdata = json.dumps(dl)
+#     return tempdata
 
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(argument_default=argparse.SUPPRESS)
+    parser.add_argument('-F', '--File',
+                        help = 'The file to extract from.',
+                        type = str,
+                        required = True)
+    args = vars(parser.parse_args())
+    rapid_tasks = formatRAPIDproductsforGG(args['File'])
+    rapid_tasks.to_csv("gannt_data/rapid_tasks.csv", index=False)
