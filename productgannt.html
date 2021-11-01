@@ -54,7 +54,7 @@
       data.addColumn('number', 'Percent Complete');
       data.addColumn('string', 'Dependencies');
 
-      globalJSON.length = 7; // TODO: remove empty rows from CSV file. for now trim the length of the array
+      globalJSON.length = 32; // TODO: remove empty rows from CSV file. for now trim the length of the array
 
       for (var i = 0; i < globalJSON.length; i++) {
         const formattedValues = Object.values(globalJSON[i]).map((value, i) => {
